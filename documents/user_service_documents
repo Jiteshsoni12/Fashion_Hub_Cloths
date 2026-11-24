@@ -1,0 +1,126 @@
+FASHIONHUB
+Software Requirements Specification
+User Service  |  Version 1.0 – Draft for Review
+
+Document information	Value
+Product	FashionHub – Clothing E-Commerce Platform
+Module	User Service
+Document type	Software Requirements Specification (SRS)
+Version / status	1.0 – Draft for review
+Prepared for	Learning project and prospective client discussion
+Initial technology approach	Java, Spring Boot, PostgreSQL and open-source tooling
+
+Working document: requirements and technical decisions may be refined during architecture review.
+ 
+Document Control
+Version	Date	Description	Status
+1.0	24 November 2026	Initial User Service requirements and approved business policies	Draft
+
+1. Purpose
+This document defines the initial functional and non-functional requirements, business rules, actors, and scope for the FashionHub User Service. It guides detailed design, implementation, testing, and client-facing explanation.
+2. Product Context
+FashionHub is a clothing-focused e-commerce platform. The User Service owns customer and administrator identity, account lifecycle, authentication, authorization, customer profile, contact verification, and customer address information.
+The service does not own product catalog, cart, order, inventory, payment, or shipping data. Those responsibilities belong to their respective services.
+3. Goals and Scope
+3.1 In scope
+•	Customer self-registration.
+•	Controlled provisioning of administrator accounts.
+•	Login using email OR phone number with password.
+•	Email and phone verification workflows.
+•	Customer profile and address management.
+•	Password change and password reset.
+•	Account status and role management.
+•	Logout and token/session invalidation strategy.
+•	Security-related audit events.
+3.2 Out of scope
+•	Product browsing and management – Catalog Service.
+•	Cart creation and item management – Cart Service.
+•	Checkout and order lifecycle – Order Service / checkout workflow.
+•	Stock management – Inventory Service.
+•	Payment processing and refunds – Payment Service.
+•	Shipment and delivery tracking – Shipping Service.
+4. Actors
+Actor	Description / interactions
+Guest	Visitor who is not authenticated; can register and browse public storefront features.
+Customer	Registered shopper; can authenticate and manage their own profile and addresses.
+Admin	Authorized administrator; can perform permitted administrative operations, including controlled admin provisioning.
+Email/SMS Provider	External delivery integration for verification messages. A local/mock adapter will be used during the initial learning build.
+
+5. Functional Requirements
+ID	Requirement	Description	Priority
+US-FR-01	Customer registration	Guest can create a customer account using at least one of email or phone.	Must
+US-FR-02	Admin provisioning	Authorized existing administrator can provision an administrator account through a protected workflow.	Must
+US-FR-03	Login	User can authenticate using email OR phone and password.	Must
+US-FR-04	Profile management	Authenticated customer can view and update permitted profile fields.	Must
+US-FR-05	Address management	Customer can create, view, update, and delete their own delivery addresses.	Must
+US-FR-06	Email verification	Service can issue and validate an email verification token/link or code.	Must
+US-FR-07	Phone verification	Service can issue and validate a phone verification code.	Must
+US-FR-08	Password management	Customer can change a password and initiate a password-reset workflow.	Must
+US-FR-09	Account lifecycle	Service supports pending verification, active, suspended, and locked states.	Must
+US-FR-10	Role-based authorization	Service enforces permissions based on assigned roles and authenticated identity.	Must
+US-FR-11	Logout	User can terminate the applicable refresh-token/session lifecycle.	Must
+US-FR-12	Audit events	Important security and account changes can be recorded for audit purposes.	Should
+
+6. Approved Business Rules
+ID	Business rule
+BR-01	At least one contact method (email or phone) is required at registration.
+BR-02	An email address must be unique when provided.
+BR-03	A phone number must be unique when provided.
+BR-04	Public registration always assigns CUSTOMER role on the server; the client cannot select a privileged role.
+BR-05	ADMIN accounts can only be provisioned through an authorized, protected administrative workflow.
+BR-06	A customer may log in before contact verification, subject to account status and valid credentials.
+BR-07	An unverified customer may browse products and add products to the cart.
+BR-08	At least one contact method supplied by the customer must be verified before checkout.
+BR-09	If both email and phone are supplied, verifying either one is sufficient for the initial checkout policy.
+BR-10	Suspended or locked accounts cannot authenticate.
+BR-11	A customer may access and modify only their own profile and addresses, except separately authorized admin operations.
+BR-12	Passwords must never be stored in plaintext; an adaptive password-hashing algorithm must be used.
+BR-13	Account status and contact-verification status are separate concepts and must be modeled independently.
+
+7. Account and Verification Model
+Account lifecycle and contact verification must be modeled separately. For example, an account can be PENDING_VERIFICATION while emailVerified and phoneVerified independently indicate which contact methods have been verified.
+Account status	Meaning
+PENDING_VERIFICATION	Account exists but no required contact verification has yet been completed.
+ACTIVE	Account is eligible for normal use, subject to authorization and other policies.
+SUSPENDED	Account access is administratively restricted.
+LOCKED	Account authentication is temporarily blocked due to a security policy or repeated failures.
+
+7.1 Checkout eligibility
+Checkout is permitted only when the account is otherwise eligible and at least one contact method provided by the customer is verified. If the customer provided only an email, that email must be verified. If only a phone number was provided, that phone number must be verified. If both were provided, either one satisfies the initial policy.
+Cart Service owns cart operations. The checkout/order workflow must enforce this policy by obtaining trusted verification information from User Service through an approved API or integration contract. It must not directly read the User Service database.
+8. Non-Functional Requirements
+Quality attribute	Requirement
+Security	Secure password hashing, authorization checks, token lifecycle controls, input validation, and externalized secrets.
+Performance	Indexed lookups for normalized email and phone identifiers; measurable latency targets will be defined during deployment planning.
+Scalability	Service boundaries and stateless request handling should support horizontal scaling.
+Reliability	Database and verification-provider failures must not result in contacts being falsely marked verified.
+Maintainability	Clear layering, SOLID principles, automated tests, and database migrations.
+Observability	Structured logs, correlation IDs, health checks, and security events without logging secrets.
+Cost control	Use free/open-source technologies and local integrations initially; paid providers are optional future integrations.
+
+9. Initial Technology and Cost Strategy
+Area	Initial choice	Cost approach
+Backend	Java + Spring Boot	Open-source
+Database	PostgreSQL	Open-source; local development
+Migrations	Flyway Community	Community tooling
+API documentation	OpenAPI / Swagger tooling	Free tooling
+Testing	JUnit, Mockito, Testcontainers	Open-source
+Diagrams	diagrams.net (draw.io)	Free
+Version control	Git and GitHub	Free tier / local Git
+Verification delivery	Local/mock adapter initially	No paid SMS/email provider required for learning build
+
+10. Assumptions and Open Design Items
+•	The initial implementation is a learning/MVP build and does not claim production certification or compliance.
+•	Real email/SMS delivery, hosting, domain, and cloud infrastructure may require a client-approved budget later.
+•	Token strategy, expiry, refresh-token storage, and logout semantics will be finalized in Security Design.
+•	Administrator provisioning controls, approval/audit requirements, and recovery process will be finalized in detailed design.
+•	Profile fields, address fields, password policy, verification expiry, resend limits, and account-lock thresholds will be specified before implementation.
+11. Requirements Phase Acceptance Criteria
+•	Service boundaries and responsibilities are agreed.
+•	Customer and administrator registration policies are documented.
+•	Email-or-phone login behavior is documented.
+•	The at-least-one-contact verification rule before checkout is documented.
+•	Cart and Catalog responsibilities remain outside the User Service boundary.
+•	Use case actors and use cases are reviewed before diagram approval.
+12. Next Deliverable
+The next design artifact is the User Service Use Case Diagram v1.0. It will show the system boundary, Guest, Customer, Admin, and Email/SMS Provider actors; service use cases; and appropriate UML include/extend relationships. The diagram will be delivered in editable draw.io format and reviewed before sequence diagrams and domain/class design.
